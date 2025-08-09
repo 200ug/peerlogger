@@ -1,0 +1,30 @@
+services:
+  peerlogger-db:
+    image: postgres:15-alpine
+    container_name: peerlogger-db
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    ports:
+      - 127.0.0.1:5432:5432 # localhost only
+    networks:
+      - peerlogger-net
+  peerlogger-crawler:
+    build: .
+    container_name: peerlogger-crawler
+    depends_on:
+      - peerlogger-db
+    environment:
+      DB_URL: ${DB_URL}
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./geoip:/app/geoip:ro
+    networks:
+      - peerlogger-net
+
+networks:
+  peerlogger-net:
+    driver: bridge
