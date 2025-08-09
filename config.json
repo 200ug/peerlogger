@@ -47,5 +47,6 @@
   "pubkey_blacklist": [],
   "crawl_interval": 30,
   "discovery_timeout": 10,
-  "max_parallel_crawls": 20
+  "max_parallel_crawls": 20,
+  "migrations_path": "./internal/db/migrations"
 }

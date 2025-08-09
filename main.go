@@ -16,10 +16,6 @@ import (
 
 // S3l1biBLaWxsYSBLbGFuLCB3ZSBtYWtlIGl0IGxvb2sgZWFzeQ==
 
-const (
-	defaultLogLevel = zerolog.InfoLevel
-)
-
 var (
 	appCfg     *util.AppConfig
 	envCfg     *util.EnvConfig
@@ -29,7 +25,7 @@ var (
 func init() {
 	envCfg = util.LoadEnv()
 	appCfg, appCfgHash = util.LoadConfig()
-	logLevel, _ := zerolog.ParseLevel(appCfg.LogLevel)
+	logLevel, _ := zerolog.ParseLevel(appCfg.LogLevel) // should already be verified
 	zerolog.SetGlobalLevel(logLevel)
 	log.Debug().Msg("Primary initialization done")
 }
@@ -38,17 +34,40 @@ func main() {
 	log.Info().Msg("Starting peerlogger")
 
 	blacklist := crawler.NewBlacklist(appCfg.IPBlacklist, appCfg.PubkeyBlacklist)
-	db := db.NewDatabase(envCfg.DBURL)
+
+	dbConfig := db.Config{
+		URL:             envCfg.DBURL,
+		MaxOpenConns:    25,
+		MaxIdleConns:    5,
+		ConnMaxLifetime: 5 * time.Minute,
+	}
+	database, err := db.New(dbConfig)
+	if err != nil {
+		log.Fatal().Err(err).Str("db_url", envCfg.DBURL).Msg("Failed to connect to database")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := database.HealthCheck(ctx); err != nil {
+		database.Close()
+		log.Fatal().Err(err).Str("db_url", envCfg.DBURL).Msg("Database health check failed")
+	}
+	log.Info().Msg("Database connection established successfully")
+	nodeRepo := db.NewNodeRepository(database)
+
 	geoIP := crawler.NewGeoIP()
+
 	crawlerCfg := &crawler.Config{
+		ConfigHash:        appCfgHash,
+		Database:          database,
+		NodeRepository:    nodeRepo,
+		Blacklist:         blacklist,
+		GeoIP:             geoIP,
 		CrawlInterval:     appCfg.CrawlInterval,
 		DiscoveryTimeout:  appCfg.DiscoveryTimeout,
 		MaxParallelCrawls: appCfg.MaxParallelCrawls,
 	}
 
-	c := crawler.NewCrawler(crawlerCfg, blacklist, db, geoIP)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	c := crawler.NewCrawler(crawlerCfg, blacklist, database, geoIP)
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 

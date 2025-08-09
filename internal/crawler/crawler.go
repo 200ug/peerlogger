@@ -2,26 +2,24 @@ package crawler
 
 import (
 	"context"
-	"net"
 	"time"
 
 	"github.com/200ug/peerlogger/internal/db"
 	"github.com/200ug/peerlogger/internal/util"
-	"github.com/ethereum/go-ethereum/p2p"
-	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/rs/zerolog/log"
 )
 
 type Crawler struct {
-	discoveryNodes []*enode.Node
-	blacklist      *Blacklist
-	db             *db.Database
-	geoIP          *GeoIP
-	config         *Config
+	config *Config
+	done   chan struct{}
 }
 
 type Config struct {
 	ConfigHash        [32]byte
+	Database          *db.Database
+	NodeRepository    *db.NodeRepository
+	Blacklist         *Blacklist
+	GeoIP             *GeoIP
 	CrawlInterval     time.Duration
 	DiscoveryTimeout  time.Duration
 	MaxParallelCrawls int
@@ -29,57 +27,36 @@ type Config struct {
 
 func NewCrawler(config *Config, blacklist *Blacklist, db *db.Database, geoIP *GeoIP) *Crawler {
 	return &Crawler{
-		config:    config,
-		blacklist: blacklist,
-		db:        db,
-		geoIP:     geoIP,
+		config: config,
+		done:   make(chan struct{}),
 	}
-}
-
-type NodeInfo struct {
-	ID           string    `json:"id"`
-	IP           net.IP    `json:"ip"`
-	Port         uint16    `json:"port"`
-	TCPPort      uint16    `json:"tcp_port"`
-	ClientType   string    `json:"client_type"`
-	CountryCode  string    `json:"country_code"`
-	City         string    `json:"city"`
-	Latitude     float64   `json:"latitude"`
-	Longitude    float64   `json:"longitude"`
-	LastSeen     time.Time `json:"last_seen"`
-	CrawledAt    time.Time `json:"crawled_at"`
-	Capabilities []p2p.Cap `json:"capabilities"`
 }
 
 func (c *Crawler) Start(ctx context.Context) {
 	log.Info().Msg("Starting node crawler")
-
-	// init discovery nodes (bootnodes)
-	c.initializeDiscoveryNodes()
-
 	ticker := time.NewTicker(c.config.CrawlInterval)
 	defer ticker.Stop()
+	defer close(c.done)
 
 	// initial crawl
-	c.runRound()
+	if err := c.runRound(); err != nil {
+		log.Error().Err(err).Msg("Initial crawl round failed")
+	}
 
 	for {
 		select {
 		case <-ticker.C:
-			c.runRound()
+			if err := c.runRound(); err != nil {
+				log.Error().Err(err).Msg("Crawl round failed")
+			}
 		case <-ctx.Done():
-			log.Info().Msg("Stopping node crawler (ctx)")
+			log.Info().Msg("Crawler stopping due to context cancellation")
 			return
 		}
 	}
 }
 
-func (c *Crawler) initializeDiscoveryNodes() {
-	// todo: init bootnodes
-	log.Debug().Msg("'initializeDiscoveryNodes' called, not implemented yet")
-}
-
-func (c *Crawler) runRound() {
+func (c *Crawler) runRound() error {
 	log.Info().Msg("Starting crawl round")
 
 	// only reload the config (and related rules) if there's been changes
@@ -91,6 +68,12 @@ func (c *Crawler) runRound() {
 			DiscoveryTimeout:  newUserConfig.DiscoveryTimeout,
 			MaxParallelCrawls: newUserConfig.MaxParallelCrawls,
 		}
-		c.blacklist.Reload(newUserConfig.IPBlacklist, newUserConfig.PubkeyBlacklist)
+		c.config.Blacklist.Reload(newUserConfig.IPBlacklist, newUserConfig.PubkeyBlacklist)
 	}
+	return nil
+}
+
+// Return a channel that's closed when the crawler stops
+func (c *Crawler) Done() <-chan struct{} {
+	return c.done
 }

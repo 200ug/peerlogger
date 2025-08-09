@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	appConfigFile = "config.json"
+	appConfigFile         = "config.json"
+	defaultMigrationsPath = "./internal/db/migrations"
 )
 
 type AppConfig struct {
@@ -23,6 +24,7 @@ type AppConfig struct {
 	CrawlInterval     time.Duration `json:"crawl_interval"`
 	DiscoveryTimeout  time.Duration `json:"discovery_timeout"`
 	MaxParallelCrawls int           `json:"max_parallel_crawls"`
+	MigrationsPath    string        `json:"migrations_path"`
 }
 
 type EnvConfig struct {
@@ -54,6 +56,7 @@ func LoadConfig() (*AppConfig, [32]byte) {
 		CrawlInterval:     30 * time.Minute,
 		DiscoveryTimeout:  10 * time.Second,
 		MaxParallelCrawls: 100,
+		MigrationsPath:    defaultMigrationsPath,
 	}
 	if err := json.Unmarshal(content, &config); err != nil {
 		log.Fatal().Err(err).Msg("Error unmarshalling JSON config")
