@@ -1,4 +1,4 @@
--- el nodes performance
+-- single indexes for el_nodes performance
 CREATE INDEX IF NOT EXISTS idx_el_nodes_last_seen ON el_nodes (last_seen DESC);
 CREATE INDEX IF NOT EXISTS idx_el_nodes_first_seen ON el_nodes (first_seen DESC);
 CREATE INDEX IF NOT EXISTS idx_el_nodes_ip_address ON el_nodes (ip_address);
