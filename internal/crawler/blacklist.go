@@ -20,6 +20,7 @@ func NewBlacklist(ipBlacklist []string, pubkeyBlacklist []string) *Blacklist {
 		ips:     make(map[string]bool),
 		pubkeys: make(map[string]bool),
 	}
+	// no need to acquire locks here as no one else is using the blacklist yet
 	b.parseIPBlacklist(ipBlacklist)
 	b.parsePubkeyBlacklist(pubkeyBlacklist)
 
@@ -29,9 +30,7 @@ func NewBlacklist(ipBlacklist []string, pubkeyBlacklist []string) *Blacklist {
 }
 
 func (b *Blacklist) parseIPBlacklist(ipList []string) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
+	// caller handles locking
 	for _, ipStr := range ipList {
 		ipStr := strings.TrimSpace(ipStr)
 		if ipStr == "" {
@@ -59,9 +58,7 @@ func (b *Blacklist) parseIPBlacklist(ipList []string) {
 }
 
 func (b *Blacklist) parsePubkeyBlacklist(pubkeyList []string) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
+	// caller handles locking
 	for _, pubkey := range pubkeyList {
 		pubkey = strings.TrimSpace(pubkey)
 		if pubkey == "" {
@@ -113,6 +110,11 @@ func (b *Blacklist) IsIPBlacklisted(ipStr string) bool {
 func (b *Blacklist) IsPubkeyBlacklisted(pubkey string) bool {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-
 	return b.pubkeys[pubkey]
+}
+
+func (b *Blacklist) GetStats() (int, int, int) {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	return len(b.ips), len(b.ipNets), len(b.pubkeys)
 }
