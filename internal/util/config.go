@@ -15,6 +15,8 @@ import (
 const (
 	appConfigFile         = "config.json"
 	defaultMigrationsPath = "./internal/db/migrations"
+	defaultGeoCityDBFile  = "./geoip/GeoLite2-City.mmdb"
+	defaultGeoASNDBFile   = "./geoip/GeoLite2-ASN.mmdb"
 )
 
 type AppConfig struct {
@@ -25,6 +27,8 @@ type AppConfig struct {
 	DiscoveryTimeout  time.Duration `json:"discovery_timeout"`
 	MaxParallelCrawls int           `json:"max_parallel_crawls"`
 	MigrationsPath    string        `json:"migrations_path"`
+	GeoIPCityDBPath   string        `json:"geoip_city_db_path"`
+	GeoIPASNDBPath    string        `json:"geoip_asn_db_path"`
 }
 
 type EnvConfig struct {
@@ -57,6 +61,8 @@ func LoadConfig() (*AppConfig, [32]byte) {
 		DiscoveryTimeout:  10 * time.Second,
 		MaxParallelCrawls: 100,
 		MigrationsPath:    defaultMigrationsPath,
+		GeoIPCityDBPath:   defaultGeoCityDBFile,
+		GeoIPASNDBPath:    defaultGeoASNDBFile,
 	}
 	if err := json.Unmarshal(content, &config); err != nil {
 		log.Fatal().Err(err).Msg("Error unmarshalling JSON config")

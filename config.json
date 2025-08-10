@@ -48,5 +48,7 @@
   "crawl_interval": 30,
   "discovery_timeout": 10,
   "max_parallel_crawls": 20,
-  "migrations_path": "./internal/db/migrations"
+  "migrations_path": "./internal/db/migrations",
+  "geoip_city_db_path": "./geoip/GeoLite2-City.mmdb",
+  "geoip_asn_db_path": "./geoip/GeoLite2-ASN.mmdb"
 }

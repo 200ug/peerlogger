@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -30,11 +31,7 @@ func init() {
 	log.Debug().Msg("Primary initialization done")
 }
 
-func main() {
-	log.Info().Msg("Starting peerlogger")
-
-	blacklist := crawler.NewBlacklist(appCfg.IPBlacklist, appCfg.PubkeyBlacklist)
-
+func initDB() (*db.NodeRepository, error) {
 	dbConfig := db.Config{
 		URL:             envCfg.DBURL,
 		MaxOpenConns:    25,
@@ -43,22 +40,53 @@ func main() {
 	}
 	database, err := db.New(dbConfig)
 	if err != nil {
-		log.Fatal().Err(err).Str("db_url", envCfg.DBURL).Msg("Failed to connect to database")
+		return nil, fmt.Errorf("initialization failed: %w", err)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	if err := database.HealthCheck(ctx); err != nil {
 		database.Close()
-		log.Fatal().Err(err).Str("db_url", envCfg.DBURL).Msg("Database health check failed")
+		return nil, fmt.Errorf("healthcheck failed: %w", err)
 	}
-	log.Info().Msg("Database connection established successfully")
 	nodeRepo := db.NewNodeRepository(database)
 
-	geoIP := crawler.NewGeoIP()
+	log.Info().Msg("Database connection established successfully")
+
+	return nodeRepo, nil
+}
+
+func initGeoIP() (*crawler.GeoIP, error) {
+	if appCfg.GeoIPCityDBPath == "" && appCfg.GeoIPASNDBPath == "" {
+		log.Info().Msg("No GeoIP database paths configured, skipping GeoIP initialization")
+		return nil, nil
+	}
+	provider, err := crawler.NewGeoIP(appCfg.GeoIPCityDBPath, appCfg.GeoIPASNDBPath)
+	if err != nil {
+		return nil, fmt.Errorf("provider creation failed: %w", err)
+	}
+	info := provider.GetDatabaseInfo()
+	log.Info().
+		Bool("city_db", info["city_db_loaded"].(bool)).
+		Bool("asn_db", info["asn_db_loaded"].(bool)).
+		Msg("GeoIP provider initialized successfully")
+	return provider, nil
+}
+
+func main() {
+	log.Info().Msg("Starting peerlogger")
+
+	blacklist := crawler.NewBlacklist(appCfg.IPBlacklist, appCfg.PubkeyBlacklist)
+	nodeRepo, err := initDB()
+	if err != nil {
+		log.Fatal().Err(err).Str("db_url", envCfg.DBURL).Msg("Database initialization failed")
+	}
+	geoIP, err := initGeoIP()
+	if err != nil {
+		log.Fatal().Err(err).Str("city_db", appCfg.GeoIPCityDBPath).Str("asn_db", appCfg.GeoIPASNDBPath).Msg("GeoIP provider initialization failed")
+	}
 
 	crawlerCfg := &crawler.Config{
 		ConfigHash:        appCfgHash,
-		Database:          database,
 		NodeRepository:    nodeRepo,
 		Blacklist:         blacklist,
 		GeoIP:             geoIP,
@@ -66,10 +94,11 @@ func main() {
 		DiscoveryTimeout:  appCfg.DiscoveryTimeout,
 		MaxParallelCrawls: appCfg.MaxParallelCrawls,
 	}
-
-	c := crawler.NewCrawler(crawlerCfg, blacklist, database, geoIP)
+	c := crawler.NewCrawler(crawlerCfg)
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	go func() {
 		c.Start(ctx)

@@ -31,5 +31,8 @@ go.work.sum
 # .idea/
 # .vscode/
 
-# Postgres data (Podman volume)
+# Postgres data (volume)
 data/
+
+# Geodata (volume)
+geoip/

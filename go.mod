@@ -70,7 +70,9 @@ require (
 	github.com/olekukonko/ll v0.0.9 // indirect
 	github.com/olekukonko/tablewriter v1.0.9 // indirect
 	github.com/oschwald/geoip2-golang v1.13.0 // indirect
+	github.com/oschwald/geoip2-golang/v2 v2.0.0-beta.3 // indirect
 	github.com/oschwald/maxminddb-golang v1.13.1 // indirect
+	github.com/oschwald/maxminddb-golang/v2 v2.0.0-beta.7 // indirect
 	github.com/peterh/liner v1.2.2 // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
 	github.com/pion/logging v0.2.4 // indirect

@@ -16,7 +16,6 @@ type Crawler struct {
 
 type Config struct {
 	ConfigHash        [32]byte
-	Database          *db.Database
 	NodeRepository    *db.NodeRepository
 	Blacklist         *Blacklist
 	GeoIP             *GeoIP
@@ -25,7 +24,7 @@ type Config struct {
 	MaxParallelCrawls int
 }
 
-func NewCrawler(config *Config, blacklist *Blacklist, db *db.Database, geoIP *GeoIP) *Crawler {
+func NewCrawler(config *Config) *Crawler {
 	return &Crawler{
 		config: config,
 		done:   make(chan struct{}),
