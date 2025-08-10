@@ -17,6 +17,7 @@ type GeoIP struct {
 
 type GeoData struct {
 	CountryName *string
+	CountryCode *string
 	CityName    *string
 	ASNumber    *int64
 }
@@ -104,6 +105,9 @@ func (g *GeoIP) Lookup(ip netip.Addr) (*GeoData, error) {
 func (g *GeoIP) extractCityData(record *geoip2.City, geoData *GeoData) {
 	if len(record.Country.Names.English) > 0 {
 		geoData.CountryName = &record.Country.Names.English
+	}
+	if len(record.Country.ISOCode) > 0 {
+		geoData.CountryCode = &record.Country.ISOCode
 	}
 	if len(record.City.Names.English) > 0 {
 		geoData.CityName = &record.City.Names.English

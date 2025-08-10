@@ -63,6 +63,9 @@ func TestGeoData_Structure(t *testing.T) {
 	if geoData.CountryName != nil {
 		t.Error("CountryName should be nil initially")
 	}
+	if geoData.CountryCode != nil {
+		t.Error("CountryCode should be nil initially")
+	}
 	if geoData.CityName != nil {
 		t.Error("CityName should be nil initially")
 	}
@@ -70,15 +73,20 @@ func TestGeoData_Structure(t *testing.T) {
 		t.Error("ASNumber should be nil initially")
 	}
 	country := "United States"
+	countryCode := "US"
 	city := "New York"
 	asNum := int64(15169)
 	geoData = &crawler.GeoData{
 		CountryName: &country,
+		CountryCode: &countryCode,
 		CityName:    &city,
 		ASNumber:    &asNum,
 	}
 	if geoData.CountryName == nil || *geoData.CountryName != country {
 		t.Error("CountryName not set correctly")
+	}
+	if geoData.CountryCode == nil || *geoData.CountryCode != countryCode {
+		t.Error("CountryCode not set correctly")
 	}
 	if geoData.CityName == nil || *geoData.CityName != city {
 		t.Error("CityName not set correctly")
@@ -108,6 +116,9 @@ func TestGeoIP_LookupWithNoDatabases(t *testing.T) {
 	//lint:ignore SA5011
 	if result.CountryName != nil {
 		t.Error("CountryName should be nil when no databases loaded")
+	}
+	if result.CountryCode != nil {
+		t.Error("CountryCode should be nil when no databases loaded")
 	}
 	if result.CityName != nil {
 		t.Error("CityName should be nil when no databases loaded")
@@ -211,6 +222,16 @@ func TestGeoIP_WithMockData(t *testing.T) {
 				}
 			} else {
 				t.Log("Country: <no data>")
+			}
+
+			if result.CountryCode != nil {
+				if len(*result.CountryCode) == 0 {
+					t.Errorf("CountryCode should not be empty string for %s", ipStr)
+				} else {
+					t.Logf("Country Code: %s", *result.CountryCode)
+				}
+			} else {
+				t.Log("Country Code: <no data>")
 			}
 
 			if result.CityName != nil {
