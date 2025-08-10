@@ -10,6 +10,6 @@ Lightweight version of the Ethernets [node-crawler](https://github.com/ethereum/
 
 ## Usage
 
-The database password (`DB_PASSWORD`) must be specified in `.env`. It's also highly recommended to specify the `ip_blacklist` and `pubkey_blacklist` sections (along with other configurable variables) to the `config.json` file.
-
-After this the project's containers can be managed with the included `launch.sh` shellscript (`./launch.sh up`/`./launch.sh down`).
+1. Define app configuration and secrets in `config.json` and `.env` (see the template)
+2. For GeoIP support, add `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb` to `geoip/` ([MaxMind](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data/))
+3. Make sure `podman-compose` is installed, then use `./launch.sh up` and `./launch.sh down` to start and stop the project's containers
