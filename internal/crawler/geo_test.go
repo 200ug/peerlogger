@@ -105,6 +105,7 @@ func TestGeoIP_LookupWithNoDatabases(t *testing.T) {
 	if result == nil {
 		t.Error("Lookup should return non-nil result even when no databases loaded")
 	}
+	//lint:ignore SA5011
 	if result.CountryName != nil {
 		t.Error("CountryName should be nil when no databases loaded")
 	}
