@@ -20,10 +20,13 @@ services:
     environment:
       DB_URL: ${DB_URL}
     volumes:
-      - ./config.json:/app/config.json:ro
+      - ./blacklists:/app/blacklists:ro
       - ./geoip:/app/geoip:ro
+      - ./enr-data:/app/enr-data
     networks:
       - peerlogger-net
+    ports:
+      - "30303:30303/udp" # (default) ethereum discovery port
 
 networks:
   peerlogger-net:

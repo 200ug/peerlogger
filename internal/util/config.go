@@ -1,71 +1,88 @@
 package util
 
 import (
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	appConfigFile         = "config.json"
-	defaultMigrationsPath = "./internal/db/migrations"
-	defaultGeoCityDBFile  = "./geoip/GeoLite2-City.mmdb"
-	defaultGeoASNDBFile   = "./geoip/GeoLite2-ASN.mmdb"
-)
-
-type AppConfig struct {
-	LogLevel          string        `json:"log_level" validate:"oneof=trace debug info warn error fatal panic"`
-	IPBlacklist       []string      `json:"ip_blacklist"` // can contain cidrs
-	PubkeyBlacklist   []string      `json:"pubkey_blacklist"`
-	CrawlInterval     time.Duration `json:"crawl_interval"`
-	DiscoveryTimeout  time.Duration `json:"discovery_timeout"`
-	MaxParallelCrawls int           `json:"max_parallel_crawls"`
-	MigrationsPath    string        `json:"migrations_path"`
-	GeoIPCityDBPath   string        `json:"geoip_city_db_path"`
-	GeoIPASNDBPath    string        `json:"geoip_asn_db_path"`
-}
-
 type EnvConfig struct {
-	DBURL string `env:"DB_URL,notEmpty"`
+	LogLevel            string `env:"LOG_LEVEL" envDefault:"info"`
+	DBURL               string `env:"DB_URL,notEmpty"`
+	IPBlacklistPath     string `env:"IP_BLACKLIST_PATH"`
+	PubkeyBlacklistPath string `env:"PUBKEY_BLACKLIST_PATH"`
+	GeoIPCityDBPath     string `env:"GEOIP_CITY_DB_PATH,notEmpty"`
+	GeoIPASNDBPath      string `env:"GEOIP_ASN_DB_PATH,notEmpty"`
+	ENRDBPath           string `env:"ENR_DB_PATH" envDefault:"./enr-data/enode.db"`
 }
 
 func LoadEnv() *EnvConfig {
-	godotenv.Load() // just in case even though env vars should be defined via docker compose
+	// load .env just in case (even though envs should be defined in the compose file)
+	if err := godotenv.Load(); err != nil {
+		// not an actual error in prod. (see above)
+		log.Debug().Msg("File .env not found, using system environment variables")
+	}
 	var cfg EnvConfig
 	if err := env.Parse(&cfg); err != nil {
 		fmt.Printf("Couldn't parse the configuration from environment variables, aborting launch: %v\n", err)
 		os.Exit(1)
 	}
 	return &cfg
-
 }
 
-// Load JSON config to a struct and calculate a SHA-256 hash of the contents.
-func LoadConfig() (*AppConfig, [32]byte) {
-	content, err := os.ReadFile(appConfigFile)
+func LoadJSONList(path, key string) []string {
+	if path == "" {
+		log.Debug().Str("path", path).Str("key", key).Msg("Empty path provided, returning empty list")
+		return []string{}
+	}
+
+	// Read the JSON file
+	data, err := os.ReadFile(path)
 	if err != nil {
-		log.Fatal().Err(err).Str("filepath", appConfigFile).Msg("Error opening the config file")
+		log.Warn().Err(err).Str("path", path).Str("key", key).Msg("Failed to read JSON file, returning empty list")
+		return []string{}
 	}
-	sha := sha256.Sum256(content)
-	config := &AppConfig{ // apply defaults here
-		LogLevel:          "info",
-		IPBlacklist:       []string{},
-		PubkeyBlacklist:   []string{},
-		CrawlInterval:     30 * time.Minute,
-		DiscoveryTimeout:  10 * time.Second,
-		MaxParallelCrawls: 100,
-		MigrationsPath:    defaultMigrationsPath,
-		GeoIPCityDBPath:   defaultGeoCityDBFile,
-		GeoIPASNDBPath:    defaultGeoASNDBFile,
+
+	// Parse the JSON
+	var jsonData map[string]interface{}
+	if err := json.Unmarshal(data, &jsonData); err != nil {
+		log.Warn().Err(err).Str("path", path).Str("key", key).Msg("Failed to parse JSON file, returning empty list")
+		return []string{}
 	}
-	if err := json.Unmarshal(content, &config); err != nil {
-		log.Fatal().Err(err).Msg("Error unmarshalling JSON config")
+
+	// Extract the specified key
+	value, exists := jsonData[key]
+	if !exists {
+		log.Warn().Str("path", path).Str("key", key).Msg("Key not found in JSON file, returning empty list")
+		return []string{}
 	}
-	return config, sha
+
+	// Convert to []string
+	switch v := value.(type) {
+	case []interface{}:
+		list := make([]string, 0, len(v))
+		for i, item := range v {
+			if str, ok := item.(string); ok {
+				list = append(list, str)
+			} else {
+				log.Warn().Str("path", path).Str("key", key).Int("index", i).
+					Msg("Non-string value found in array, skipping")
+			}
+		}
+		log.Debug().Str("path", path).Str("key", key).Int("count", len(list)).
+			Msg("Successfully loaded JSON list")
+		return list
+	case []string:
+		log.Debug().Str("path", path).Str("key", key).Int("count", len(v)).
+			Msg("Successfully loaded JSON list")
+		return v
+	default:
+		log.Warn().Str("path", path).Str("key", key).
+			Msg("Value is not an array, returning empty list")
+		return []string{}
+	}
 }

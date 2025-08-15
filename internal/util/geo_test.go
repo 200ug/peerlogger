@@ -1,15 +1,15 @@
-package crawler_test
+package util_test
 
 import (
 	"net/netip"
 	"testing"
 
-	"github.com/200ug/peerlogger/internal/crawler"
+	"github.com/200ug/peerlogger/internal/util"
 )
 
 func TestNewGeoIP(t *testing.T) {
 	// empty paths should not panic
-	geo, err := crawler.NewGeoIP("", "")
+	geo, err := util.NewGeoIP("", "")
 	if err != nil {
 		t.Fatalf("NewGeoIP with empty paths should not error: %v", err)
 	}
@@ -27,7 +27,7 @@ func TestNewGeoIP(t *testing.T) {
 }
 
 func TestGeoIP_Close(t *testing.T) {
-	geo, err := crawler.NewGeoIP("", "")
+	geo, err := util.NewGeoIP("", "")
 	if err != nil {
 		t.Fatalf("Failed to create GeoIP: %v", err)
 	}
@@ -44,7 +44,7 @@ func TestGeoIP_Close(t *testing.T) {
 }
 
 func TestGeoIP_GetDatabaseInfo(t *testing.T) {
-	geo, err := crawler.NewGeoIP("", "")
+	geo, err := util.NewGeoIP("", "")
 	if err != nil {
 		t.Fatalf("Failed to create GeoIP: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestGeoIP_GetDatabaseInfo(t *testing.T) {
 }
 
 func TestGeoData_Structure(t *testing.T) {
-	geoData := &crawler.GeoData{}
+	geoData := &util.GeoData{}
 	// fields should be nil initially
 	if geoData.CountryName != nil {
 		t.Error("CountryName should be nil initially")
@@ -76,7 +76,7 @@ func TestGeoData_Structure(t *testing.T) {
 	countryCode := "US"
 	city := "New York"
 	asNum := int64(15169)
-	geoData = &crawler.GeoData{
+	geoData = &util.GeoData{
 		CountryName: &country,
 		CountryCode: &countryCode,
 		CityName:    &city,
@@ -97,7 +97,7 @@ func TestGeoData_Structure(t *testing.T) {
 }
 
 func TestGeoIP_LookupWithNoDatabases(t *testing.T) {
-	geo, err := crawler.NewGeoIP("", "")
+	geo, err := util.NewGeoIP("", "")
 	if err != nil {
 		t.Fatalf("Failed to create GeoIP: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestGeoIP_ValidIPAddresses(t *testing.T) {
 				return // no need to test lookup for invalid ips
 			}
 			// lookup with valid ip (no dbs loaded)
-			geo, err := crawler.NewGeoIP("", "")
+			geo, err := util.NewGeoIP("", "")
 			if err != nil {
 				t.Fatalf("Failed to create GeoIP: %v", err)
 			}
@@ -172,7 +172,7 @@ func TestGeoIP_ValidIPAddresses(t *testing.T) {
 }
 
 func TestGeoIP_LoadDatabaseErrors(t *testing.T) {
-	geo := &crawler.GeoIP{}
+	geo := &util.GeoIP{}
 	// loading non-existent db files
 	err := geo.LoadCityDatabase("/non/existent/path/GeoLite2-City.mmdb")
 	if err == nil {
@@ -186,7 +186,7 @@ func TestGeoIP_LoadDatabaseErrors(t *testing.T) {
 
 // Integration test helper (**requires actual database files**)
 func TestGeoIP_WithMockData(t *testing.T) {
-	geo, err := crawler.NewGeoIP("../../geoip/GeoLite2-City.mmdb", "../../geoip/GeoLite2-ASN.mmdb")
+	geo, err := util.NewGeoIP("../../geoip/GeoLite2-City.mmdb", "../../geoip/GeoLite2-ASN.mmdb")
 	if err != nil {
 		t.Skipf("Skipping test - GeoIP databases not available: %v", err)
 	}

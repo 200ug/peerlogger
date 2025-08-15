@@ -1,9 +1,9 @@
-package crawler_test
+package util_test
 
 import (
 	"testing"
 
-	"github.com/200ug/peerlogger/internal/crawler"
+	"github.com/200ug/peerlogger/internal/util"
 )
 
 func TestNewBlacklist(t *testing.T) {
@@ -42,7 +42,7 @@ func TestNewBlacklist(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bl := crawler.NewBlacklist(tt.ipBlacklist, tt.pubkeyBlacklist)
+			bl := util.NewBlacklist(tt.ipBlacklist, tt.pubkeyBlacklist)
 
 			ips, cidrs, pubkeys := bl.GetStats()
 			if ips != tt.expectedIPs {
@@ -59,7 +59,7 @@ func TestNewBlacklist(t *testing.T) {
 }
 
 func TestBlacklist_IsIPBlacklisted(t *testing.T) {
-	bl := crawler.NewBlacklist([]string{
+	bl := util.NewBlacklist([]string{
 		"192.168.1.1",
 		"10.0.0.0/24",
 		"172.16.0.0/16",
@@ -111,7 +111,7 @@ func TestBlacklist_IsIPBlacklisted(t *testing.T) {
 }
 
 func TestBlacklist_IsPubkeyBlacklisted(t *testing.T) {
-	bl := crawler.NewBlacklist([]string{"192.168.1.1"}, []string{
+	bl := util.NewBlacklist([]string{"192.168.1.1"}, []string{
 		"pubkey1",
 		"pubkey2",
 		"0x1234567890abcdef",
@@ -158,7 +158,7 @@ func TestBlacklist_IsPubkeyBlacklisted(t *testing.T) {
 }
 
 func TestBlacklist_Reload(t *testing.T) {
-	bl := crawler.NewBlacklist([]string{"192.168.1.1"}, []string{"pubkey1"})
+	bl := util.NewBlacklist([]string{"192.168.1.1"}, []string{"pubkey1"})
 	ips, cidrs, pubkeys := bl.GetStats()
 	if ips != 1 || cidrs != 0 || pubkeys != 1 {
 		t.Errorf("Initial state incorrect: IPs=%d, CIDRs=%d, Pubkeys=%d", ips, cidrs, pubkeys)
@@ -183,7 +183,7 @@ func TestBlacklist_Reload(t *testing.T) {
 }
 
 func TestBlacklist_EmptyAndWhitespaceHandling(t *testing.T) {
-	bl := crawler.NewBlacklist([]string{"", "  ", "192.168.1.1", " 10.0.0.1 "}, []string{"", "  ", "pubkey1", " pubkey2 "})
+	bl := util.NewBlacklist([]string{"", "  ", "192.168.1.1", " 10.0.0.1 "}, []string{"", "  ", "pubkey1", " pubkey2 "})
 	ips, cidrs, pubkeys := bl.GetStats()
 	if ips != 2 || cidrs != 0 || pubkeys != 2 {
 		t.Errorf("Empty/whitespace handling incorrect: IPs=%d, CIDRs=%d, Pubkeys=%d", ips, cidrs, pubkeys)
@@ -203,7 +203,7 @@ func TestBlacklist_EmptyAndWhitespaceHandling(t *testing.T) {
 }
 
 func TestBlacklist_InvalidCIDRAndIP(t *testing.T) {
-	bl := crawler.NewBlacklist([]string{
+	bl := util.NewBlacklist([]string{
 		"invalid-cidr/24",
 		"999.999.999.999",
 		"not-an-ip",

@@ -1,4 +1,4 @@
-package crawler
+package util
 
 import (
 	"net"
@@ -113,7 +113,7 @@ func (b *Blacklist) IsPubkeyBlacklisted(pubkey string) bool {
 	return b.pubkeys[pubkey]
 }
 
-func (b *Blacklist) GetStats() (int, int, int) {
+func (b *Blacklist) GetStats() (ips int, ipNets int, pubkeys int) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return len(b.ips), len(b.ipNets), len(b.pubkeys)

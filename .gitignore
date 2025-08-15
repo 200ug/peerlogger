@@ -36,3 +36,9 @@ data/
 
 # Geodata (volume)
 geoip/
+
+# Blacklists
+blacklists/
+
+# Binary
+peerlogger
