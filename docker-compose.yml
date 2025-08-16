@@ -2,6 +2,7 @@ services:
   peerlogger-db:
     image: postgres:15-alpine
     container_name: peerlogger-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -15,6 +16,7 @@ services:
   peerlogger-crawler:
     build: .
     container_name: peerlogger-crawler
+    restart: unless-stopped
     depends_on:
       - peerlogger-db
     environment:
