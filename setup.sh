@@ -66,17 +66,18 @@ configure_firewall() {
 configure_podman_networking() {
     log_info "Configuring Podman networking for Debian VPS..."
     
-    # enable and start podman socket service for better systemd integration
-    systemctl --user enable podman.socket || log_warn "Could not enable podman.socket (may require re-login)"
+    # fix systemd user session issues
+    sudo loginctl enable-linger "$(whoami)" || log_warn "Could not enable lingering"
     
     # network config directory
     mkdir -p ~/.config/containers/
     
+    # use cgroupfs instead of systemd to avoid user session issues
     if [[ ! -f ~/.config/containers/containers.conf ]]; then
         cat > ~/.config/containers/containers.conf << 'EOF'
 [containers]
-# use systemd for cgroup management (default on debian)
-cgroup_manager = "systemd"
+# use cgroupfs for better vps compatibility (avoids systemd user session issues)
+cgroup_manager = "cgroupfs"
 
 # optimization for vps resource constraints
 default_ulimits = [
