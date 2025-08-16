@@ -2,6 +2,7 @@ services:
   peerlogger-db:
     image: postgres:15-alpine
     container_name: peerlogger-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -12,21 +13,22 @@ services:
       - 127.0.0.1:5432:5432 # localhost only
     networks:
       - peerlogger-net
+
   peerlogger-crawler:
     build: .
     container_name: peerlogger-crawler
+    restart: unless-stopped
     depends_on:
       - peerlogger-db
+    # use host networking to work with ufw firewall (setup.sh)
+    network_mode: host
     environment:
-      DB_URL: postgres://${DB_USER}:${DB_PASSWORD}@peerlogger-db:5432/${DB_NAME}
+      # notably points to localhost (instead of peerlogger-db container) since crawler is on host network
+      DB_URL: postgresql://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}
     volumes:
       - ./blacklists:/app/blacklists:ro
       - ./geoip:/app/geoip:ro
       - ./enr-data:/app/enr-data
-    networks:
-      - peerlogger-net
-    ports:
-      - "30303:30303/udp" # (default) ethereum discovery port
 
 networks:
   peerlogger-net:

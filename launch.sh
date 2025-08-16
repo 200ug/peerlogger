@@ -4,7 +4,7 @@
 
 case "$1" in
     up)
-        podman-compose up -d
+        podman-compose -f docker-compose.prod.yml up -d
         podman ps -a
         ;;
     down)
