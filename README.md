@@ -19,7 +19,8 @@ Ethereum network peer discovery crawler
 cp .env.example .env
 # Edit .env with your database URL and paths
 
-# Build and run
-go build .
-./peerlogger
+# Use the included shellscript to spawn containers for crawler + PostgreSQL
+chmod +x launch.sh
+./launch.sh up    # Startup
+./launch.sh down  # Shutdown
 ```
